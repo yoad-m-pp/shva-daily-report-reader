@@ -272,6 +272,12 @@
 
                         mainContainer.classList.add('full-width');
 
+                        const date = data[0][2].slice(0, 2) + '/' + data[0][2].slice(2, 4) + '/' + data[0][2].slice(4);
+
+                        const dateDiv = document.createElement('div');
+                        dateDiv.textContent = `תאריך דוח: ${date}`;
+                        dateDiv.style.textAlign = 'right';
+                        dateDiv.style.fontWeight = 'bold';
                         const table = document.createElement('table');
                         const headerRow = table.createTHead().insertRow();
                         Object.values(data[1]).forEach(value => {
@@ -340,6 +346,7 @@
                         });
 
                         tableContainer.innerHTML = '';
+                        tableContainer.appendChild(dateDiv);
                         tableContainer.appendChild(table);
                     },
                     error: function () {
