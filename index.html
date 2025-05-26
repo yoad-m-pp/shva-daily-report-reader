@@ -108,56 +108,6 @@
         tr:hover {
             background-color: lightgray;
         }
-
-        .alert {
-            margin-top: 25px;
-            position: relative;
-            padding: 12px 16px 12px 44px;
-            border: 1px solid #e53935;
-            border-right: 6px solid #e53935;
-            background: #ffebee;
-            color: #b71c1c;
-            font: 14px/1.4 system-ui, sans-serif;
-            border-radius: 4px;
-            display: flex;
-            align-items: start;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, .08);
-            transition: opacity .25s ease, transform .25s ease;
-            opacity: 0;
-            transform: translateY(-4px);
-        }
-
-        .alert__icon {
-            font-size: 20px;
-            line-height: 1;
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
-        .alert__close {
-            margin-left: auto;
-            background: none;
-            border: 0;
-            font-size: 20px;
-            line-height: 1;
-            cursor: pointer;
-            color: inherit;
-        }
-
-        .alert__close:focus-visible {
-            outline: 2px solid currentColor;
-        }
-
-        .alert.is-visible {
-            opacity: 1;
-            transform: none;
-        }
-
-        .alert[hidden] {
-            display: none;
-        }
     </style>
 </head>
 
@@ -174,15 +124,11 @@
             </label>
         </div>
 
-        <div id="csvError" class="alert" role="alert" aria-live="assertive" hidden>
-            <span class="alert__text">קבצי CSV בלבד</span>
-        </div>
         <div id="table-container"></div>
     </div>
 
     <script>
         const fileInput = document.getElementById('csvFileInput');
-        const csvErrorBox = document.getElementById('csvError');
         const dropZone = document.getElementById('drop-zone');
         const dropZoneLabel = document.querySelector('#drop-zone > span');
         const closeFileButton = document.querySelector('#drop-zone > button');
@@ -197,8 +143,6 @@
             dropZone.style.padding = '40px';
             closeFileButton.style.display = 'none';
             tableContainer.innerHTML = '';
-            csvErrorBox.hidden = true;
-            csvErrorBox.classList.remove('is-visible');
             dropZone.classList.remove('dragover');
             fileInput.value = '';
         }
@@ -237,6 +181,11 @@
         });
 
         closeFileButton.addEventListener('click', (e) => {
+            const file_uid = getFileUuidFromQuery();
+            if (file_uid) {
+                window.location.href = window.location.pathname;
+                return;
+            }
             removeSelectedFile();
         });
 
@@ -245,12 +194,10 @@
 
             if (!isCsv) {
                 fileInput.value = '';
-                csvErrorBox.hidden = false;
-                csvErrorBox.classList.add('is-visible');
+                tableContainer.innerText = 'נא לבחור קובץ CSV תקין';
                 return;
             } else {
-                csvErrorBox.classList.remove('is-visible');
-                csvErrorBox.hidden = true;
+                tableContainer.innerText = '';
             }
 
             const reader = new FileReader();
@@ -262,98 +209,100 @@
                 Papa.parse(csvText, {
                     header: false,
                     skipEmptyLines: true,
-                    complete: function (results) {
-                        const data = results.data.map(row => row.slice(0, 24));
-
-                        if (data.length === 0) {
-                            tableContainer.innerText = 'לא נמצאו נתונים';
-                            return;
-                        }
-
-                        mainContainer.classList.add('full-width');
-
-                        const date = data[0][2].slice(0, 2) + '/' + data[0][2].slice(2, 4) + '/' + data[0][2].slice(4);
-
-                        const dateDiv = document.createElement('div');
-                        dateDiv.textContent = `תאריך דוח: ${date}`;
-                        dateDiv.style.textAlign = 'right';
-                        dateDiv.style.fontWeight = 'bold';
-                        const table = document.createElement('table');
-                        const headerRow = table.createTHead().insertRow();
-                        Object.values(data[1]).forEach(value => {
-                            const th = document.createElement('th');
-                            th.textContent = value;
-                            headerRow.appendChild(th);
-                        });
-
-                        const tbody = table.createTBody();
-                        const tbodyData = checkTerminalStatus(data.slice(start_after_row_index));
-
-                        const tbodyRenderData = [
-                            ...tbodyData.terminalRowsIndexes.approved,
-                            ...tbodyData.terminalRowsIndexes.waiting,
-                            ...tbodyData.terminalRowsIndexes.declined
-                        ];
-
-                        tbodyRenderData.forEach(row => {
-
-                            const bgColor = rowColorByStatus(row.status);
-
-                            const tr1 = tbody.insertRow();
-                            tr1.classList.add(bgColor);
-                            tr1.style.borderBottom = '2px solid #ccc';
-                            Object.values(tbodyData.data[row.index]).forEach((val, td_index) => {
-                                const td = tr1.insertCell();
-                                td.textContent = val;
-
-                                if (tbodyData.data[row.index][23].includes('חדש') && tbodyData.terminalRowsIndexes.approved.some(terminal => terminal.terminalNumber.includes(tbodyData.data[row.index][1]))) {
-                                    td.style.fontWeight = 'bold';
-                                }
-
-                                if (
-                                    [18, 19, 20, 21, 22].includes(td_index)
-                                    && (val.includes('מסורב'))
-                                    && tbodyData.data[row.index][23].includes('חדש')
-                                    && tbodyData.terminalRowsIndexes.approved.some(terminal => terminal.terminalNumber.includes(tbodyData.data[row.index][1]))
-                                ) {
-                                    td.style.color = 'red';
-                                    td.style.fontWeight = 'bold';
-                                }
-                            });
-
-                            if (row.twoRowsTerminalData) {
-                                const tr2 = tbody.insertRow();
-                                tr2.classList.add(bgColor);
-                                tr2.style.borderBottom = '2px solid #ccc';
-                                tr1.style.borderBottom = 'unset';
-                                Object.values(tbodyData.data[row.index + 1]).forEach((val, td_index) => {
-                                    const td = tr2.insertCell();
-                                    td.textContent = val;
-
-                                    if (tbodyData.terminalRowsIndexes.approved.some(terminal => terminal.terminalNumber.includes(tbodyData.data[row.index][1]))) {
-                                        tr2.style.fontWeight = 'bold';
-                                    }
-
-                                    if (
-                                        [18, 19, 20, 21, 22].includes(td_index)
-                                        && (val.includes('מסורב'))
-                                        && tbodyData.terminalRowsIndexes.approved.some(terminal => terminal.terminalNumber.includes(tbodyData.data[row.index][1]))
-                                    ) {
-                                        td.style.color = 'red';
-                                    }
-                                });
-                            }
-                        });
-
-                        tableContainer.innerHTML = '';
-                        tableContainer.appendChild(dateDiv);
-                        tableContainer.appendChild(table);
-                    },
+                    complete: (results) => renderTable(results),
                     error: function () {
                         tableContainer.innerText = 'שגיאה בקריאת הקובץ';
                     }
                 });
             };
+        }
+
+        function renderTable(results, from_server = false) {
+            const data = !from_server ? results.data.map(row => row.slice(0, 24)) : results;
+
+            if (data.length === 0) {
+                tableContainer.innerText = 'לא נמצאו נתונים';
+                return;
+            }
+
+            mainContainer.classList.add('full-width');
+
+            const date = from_server ? results.date : data[0][2].slice(0, 2) + '/' + data[0][2].slice(2, 4) + '/' + data[0][2].slice(4);
+
+            const dateDiv = document.createElement('div');
+            dateDiv.textContent = `תאריך דוח: ${date}`;
+            dateDiv.style.textAlign = 'right';
+            dateDiv.style.fontWeight = 'bold';
+            const table = document.createElement('table');
+            const headerRow = table.createTHead().insertRow();
+            Object.values(!from_server ? data[1] : results.headers).forEach(value => {
+                const th = document.createElement('th');
+                th.textContent = value;
+                headerRow.appendChild(th);
+            });
+
+            const tbody = table.createTBody();
+            const tbodyData = checkTerminalStatus(!from_server ? data.slice(start_after_row_index) : data.rows);
+
+            const tbodyRenderData = [
+                ...tbodyData.terminalRowsIndexes.approved,
+                ...tbodyData.terminalRowsIndexes.waiting,
+                ...tbodyData.terminalRowsIndexes.declined
+            ];
+
+            tbodyRenderData.forEach(row => {
+
+                const bgColor = rowColorByStatus(row.status);
+
+                const tr1 = tbody.insertRow();
+                tr1.classList.add(bgColor);
+                tr1.style.borderBottom = '2px solid #ccc';
+                Object.values(tbodyData.data[row.index]).forEach((val, td_index) => {
+                    const td = tr1.insertCell();
+                    td.textContent = val;
+
+                    if (tbodyData.data[row.index][23].includes('חדש') && tbodyData.terminalRowsIndexes.approved.some(terminal => terminal.terminalNumber.includes(tbodyData.data[row.index][1]))) {
+                        td.style.fontWeight = 'bold';
+                    }
+
+                    if (
+                        [18, 19, 20, 21, 22].includes(td_index)
+                        && (val.includes('מסורב'))
+                        && tbodyData.data[row.index][23].includes('חדש')
+                        && tbodyData.terminalRowsIndexes.approved.some(terminal => terminal.terminalNumber.includes(tbodyData.data[row.index][1]))
+                    ) {
+                        td.style.color = 'red';
+                        td.style.fontWeight = 'bold';
+                    }
+                });
+
+                if (row.twoRowsTerminalData) {
+                    const tr2 = tbody.insertRow();
+                    tr2.classList.add(bgColor);
+                    tr2.style.borderBottom = '2px solid #ccc';
+                    tr1.style.borderBottom = 'unset';
+                    Object.values(tbodyData.data[row.index + 1]).forEach((val, td_index) => {
+                        const td = tr2.insertCell();
+                        td.textContent = val;
+
+                        if (tbodyData.terminalRowsIndexes.approved.some(terminal => terminal.terminalNumber.includes(tbodyData.data[row.index][1]))) {
+                            tr2.style.fontWeight = 'bold';
+                        }
+
+                        if (
+                            [18, 19, 20, 21, 22].includes(td_index)
+                            && (val.includes('מסורב'))
+                            && tbodyData.terminalRowsIndexes.approved.some(terminal => terminal.terminalNumber.includes(tbodyData.data[row.index][1]))
+                        ) {
+                            td.style.color = 'red';
+                        }
+                    });
+                }
+            });
+
+            tableContainer.innerHTML = '';
+            tableContainer.appendChild(dateDiv);
+            tableContainer.appendChild(table);
         }
 
         function checkTerminalStatus(data) {
@@ -472,6 +421,39 @@
         function rowColorByStatus(status) {
             return status
         }
+
+        function getFileUuidFromQuery() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('file_uid');
+        }
+
+        function getFileData(file_uid) {
+            return new Promise((resolve, reject) => {
+                fetch(`https://shva-daily-report-reader-api.vercel.app/api/get-file-data?file_uuid=${file_uid}`)
+                    .then(response => response.json())
+                    .then(data => resolve(data))
+                    .catch(error => reject(error));
+            });
+        }
+
+        window.onload = async function () {
+            const file_uid = getFileUuidFromQuery();
+            if (file_uid) {
+                const file = await getFileData(file_uid);
+                if (file.error) {
+                    tableContainer.innerText = "קובץ לא קיים";
+                    return;
+                }
+                if (file) {
+                    dropZoneLabel.textContent = file.name;
+                    dropZone.appendChild(fileInput);
+                    dropZone.style.padding = '15px';
+                    closeFileButton.style.display = 'inline-block';
+                    renderTable(file, true);
+                }
+            }
+        };
+
     </script>
 </body>
 
