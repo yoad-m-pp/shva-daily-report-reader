@@ -439,6 +439,7 @@
         window.onload = async function () {
             const file_uid = getFileUuidFromQuery();
             if (file_uid) {
+                tableContainer.innerText = 'קובץ בטעינה';
                 const file = await getFileData(file_uid);
                 if (file.error) {
                     tableContainer.innerText = "קובץ לא קיים";
