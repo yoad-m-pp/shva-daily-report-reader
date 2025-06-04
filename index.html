@@ -284,9 +284,9 @@
             legendDiv.id = 'legend';
 
             const legendItems = [
-                { label: 'מאושר', className: 'approved', color: '#e7ffe7', count: approvedCount },
-                { label: 'ממתין', className: 'waiting', color: '#fdfae3', count: waitingCount },
-                { label: 'מסורב', className: 'declined', color: '#ffe7e7', count: declinedCount },
+                { label: 'מאושר - ', className: 'approved', color: '#e7ffe7', count: approvedCount },
+                { label: 'ממתין - ', className: 'waiting', color: '#fdfae3', count: waitingCount },
+                { label: 'מסורב - ', className: 'declined', color: '#ffe7e7', count: declinedCount },
             ];
 
             legendItems.forEach(item => {
@@ -301,7 +301,7 @@
                 colorBox.style.background = item.color;
 
                 const countSpan = document.createElement('span');
-                countSpan.textContent = `(${item.count})`;
+                countSpan.textContent = `${item.count}`;
                 countSpan.className = 'count-span';
 
                 legendItem.appendChild(colorBox);
