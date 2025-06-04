@@ -70,10 +70,52 @@
 
         #table-container {
             direction: ltr;
-            margin-top: 75px;
+            margin-top: 50px;
             overflow-x: auto;
-            border-radius: 8px;
             font-size: 0.75rem;
+        }
+
+        #date-legend {
+            font-size: 0.75rem;
+            margin-top: 50px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-start;
+            box-sizing: border-box;
+        }
+
+        #date {
+            text-align: right;
+            font-weight: bold;
+            direction: rtl;
+        }
+
+        #legend {
+            display: flex;
+            justify-content: flex-start;
+            gap: 16px;
+            align-items: center;
+
+            .legend-item {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+            }
+
+            .color-box {
+                display: inline-block;
+                width: 16px;
+                height: 16px;
+                border-radius: 4px;
+                border: 1px solid #ccc;
+            }
+
+            .count-span {
+                font-weight: bold;
+                margin-left: 2px;
+            }
         }
 
         table {
@@ -124,6 +166,7 @@
             </label>
         </div>
 
+        <div id="date-legend"></div>
         <div id="table-container"></div>
     </div>
 
@@ -134,6 +177,7 @@
         const closeFileButton = document.querySelector('#drop-zone > button');
         const tableContainer = document.getElementById('table-container');
         const mainContainer = document.getElementById('main-container');
+        const dateLegendDiv = document.getElementById('date-legend');
 
         const start_after_row_index = 2;
 
@@ -143,6 +187,7 @@
             dropZone.style.padding = '40px';
             closeFileButton.style.display = 'none';
             tableContainer.innerHTML = '';
+            dateLegendDiv.innerHTML = '';
             dropZone.classList.remove('dragover');
             fileInput.value = '';
         }
@@ -182,11 +227,8 @@
 
         closeFileButton.addEventListener('click', (e) => {
             const file_uid = getFileUuidFromQuery();
-            if (file_uid) {
-                window.location.href = window.location.pathname;
-                return;
-            }
-            removeSelectedFile();
+            window.location.href = window.location.pathname;
+            return;
         });
 
         function handleFile(file) {
@@ -229,10 +271,45 @@
 
             const date = from_server ? results.date : data[0][2].slice(0, 2) + '/' + data[0][2].slice(2, 4) + '/' + data[0][2].slice(4);
 
+            const tbodyData = checkTerminalStatus(!from_server ? data.slice(start_after_row_index) : data.rows);
+            const approvedCount = tbodyData.terminalRowsIndexes.approved.length;
+            const waitingCount = tbodyData.terminalRowsIndexes.waiting.length;
+            const declinedCount = tbodyData.terminalRowsIndexes.declined.length;
+
             const dateDiv = document.createElement('div');
             dateDiv.textContent = `תאריך דוח: ${date}`;
-            dateDiv.style.textAlign = 'right';
-            dateDiv.style.fontWeight = 'bold';
+            dateDiv.id = 'date';
+
+            const legendDiv = document.createElement('div');
+            legendDiv.id = 'legend';
+
+            const legendItems = [
+                { label: 'מאושר', className: 'approved', color: '#e7ffe7', count: approvedCount },
+                { label: 'ממתין', className: 'waiting', color: '#fdfae3', count: waitingCount },
+                { label: 'נדחה', className: 'declined', color: '#ffe7e7', count: declinedCount },
+            ];
+
+            legendItems.forEach(item => {
+                const legendItem = document.createElement('span');
+                legendItem.className = `legend-item`;
+
+                const labelSpan = document.createElement('span');
+                labelSpan.textContent = item.label;
+
+                const colorBox = document.createElement('span');
+                colorBox.className = 'color-box';
+                colorBox.style.background = item.color;
+
+                const countSpan = document.createElement('span');
+                countSpan.textContent = `(${item.count})`;
+                countSpan.className = 'count-span';
+
+                legendItem.appendChild(colorBox);
+                legendItem.appendChild(labelSpan);
+                legendItem.appendChild(countSpan);
+                legendDiv.appendChild(legendItem);
+            });
+
             const table = document.createElement('table');
             const headerRow = table.createTHead().insertRow();
             Object.values(!from_server ? data[1] : results.headers).forEach(value => {
@@ -242,8 +319,6 @@
             });
 
             const tbody = table.createTBody();
-            const tbodyData = checkTerminalStatus(!from_server ? data.slice(start_after_row_index) : data.rows);
-
             const tbodyRenderData = [
                 ...tbodyData.terminalRowsIndexes.approved,
                 ...tbodyData.terminalRowsIndexes.waiting,
@@ -251,7 +326,6 @@
             ];
 
             tbodyRenderData.forEach(row => {
-
                 const bgColor = rowColorByStatus(row.status);
 
                 const tr1 = tbody.insertRow();
@@ -300,8 +374,12 @@
                 }
             });
 
+            dateLegendDiv.innerHTML = '';
+            dateLegendDiv.appendChild(dateDiv);
+            dateLegendDiv.appendChild(legendDiv);
+
             tableContainer.innerHTML = '';
-            tableContainer.appendChild(dateDiv);
+            tableContainer.style.marginTop = 0;
             tableContainer.appendChild(table);
         }
 
