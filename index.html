@@ -564,6 +564,7 @@
                 tableContainer.innerText = 'קובץ בטעינה';
                 const file = await getFileData(file_uid);
                 if (file.error) {
+                    mainContainer.classList.remove('loading');
                     tableContainer.innerText = "קובץ לא קיים";
                     return;
                 }
