@@ -501,7 +501,7 @@
                         if (terminalSapaksStatuses.amex === 'approved' || terminalSapaksStatuses.diners === 'approved') {
                             status = 'approved';
                         }
-                        else if (terminalSapaksStatuses.amex === 'waiting' || !terminalSapaksStatuses.diners === 'waiting') {
+                        else if (terminalSapaksStatuses.amex === 'waiting' || terminalSapaksStatuses.diners === 'waiting') {
                             status = 'waiting';
                         }
                         else {
