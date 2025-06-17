@@ -450,7 +450,7 @@
                 const terminalName = row[2];
 
                 const twoRowsTerminalData = nextRow
-                    ? terminalName === nextRow?.[2] && nextRow?.[1] === ''
+                    ? nextRow?.[1] === ''
                     : false;
 
                 const terminalSapaksValues = row.slice(6, 13);
